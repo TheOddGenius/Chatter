@@ -112,8 +112,183 @@
         </div>
     </div>
 
-    <!-- Add Socket.IO CDN -->
+    <!-- Update Socket.IO CDN to specific version -->
     <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
-    <script src="js/main.js"></script>
+    
+    <script>
+        // Initialize variables
+        let currentUser = null;
+        let chatMessages = {};
+        let chatRelationships = {};
+        let socket;
+
+        // Connect to Socket.IO server (using render.com free service)
+        function initializeSocket() {
+            // Connect to a reliable free Socket.IO server
+            socket = io('https://socketio-chat-server.onrender.com', {
+                transports: ['websocket'],
+                upgrade: false,
+                reconnection: true,
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000
+            });
+
+            socket.on('connect', () => {
+                console.log('Connected to server');
+                if (currentUser) {
+                    socket.emit('user_connected', { 
+                        username: currentUser,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            });
+
+            socket.on('chat_message', (data) => {
+                console.log('Received message:', data);
+                if (data.receiver === currentUser) {
+                    // Add message to chat
+                    if (!chatMessages[data.sender]) {
+                        chatMessages[data.sender] = [];
+                        chatRelationships[data.sender] = [];
+                    }
+
+                    const newMessage = {
+                        text: data.message,
+                        sender: data.sender,
+                        receiver: currentUser,
+                        timestamp: new Date().toISOString(),
+                        status: 'received',
+                        id: data.messageId
+                    };
+
+                    chatMessages[data.sender].push(newMessage);
+
+                    // Save to localStorage
+                    localStorage.setItem(`messages_${currentUser}`, JSON.stringify(chatMessages));
+                    localStorage.setItem(`relationships_${currentUser}`, JSON.stringify(chatRelationships));
+
+                    // Update UI if chat is open
+                    const currentChat = document.querySelector('.chat-header .chat-name').textContent;
+                    if (currentChat === data.sender) {
+                        loadMessages(data.sender);
+                        // Send seen status back
+                        socket.emit('message_seen', {
+                            messageId: data.messageId,
+                            sender: currentUser,
+                            receiver: data.sender
+                        });
+                    }
+                    loadContacts();
+
+                    // Show notification if window is not focused
+                    if (!document.hasFocus()) {
+                        showNotification(data.sender, data.message);
+                    }
+                }
+            });
+
+            socket.on('message_seen', (data) => {
+                if (data.receiver === currentUser) {
+                    updateMessageStatus(data.sender, data.messageId, 'seen');
+                }
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Disconnected from server');
+                setTimeout(() => {
+                    initializeSocket();
+                }, 3000);
+            });
+
+            socket.on('connect_error', (error) => {
+                console.error('Connection error:', error);
+            });
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('message-input');
+            const currentContact = document.querySelector('.chat-header .chat-name').textContent;
+            const messageText = input.value.trim();
+            
+            if (messageText && currentContact !== 'Select a chat to start messaging') {
+                const messageId = Date.now().toString();
+                const newMessage = {
+                    id: messageId,
+                    text: messageText,
+                    sender: currentUser,
+                    receiver: currentContact,
+                    timestamp: new Date().toISOString(),
+                    status: 'sent'
+                };
+
+                // Save locally
+                if (!chatMessages[currentContact]) {
+                    chatMessages[currentContact] = [];
+                }
+                chatMessages[currentContact].push(newMessage);
+                localStorage.setItem(`messages_${currentUser}`, JSON.stringify(chatMessages));
+
+                // Send via Socket.IO
+                socket.emit('chat_message', {
+                    messageId: messageId,
+                    sender: currentUser,
+                    receiver: currentContact,
+                    message: messageText,
+                    timestamp: new Date().toISOString()
+                });
+
+                // Clear input and update UI
+                input.value = '';
+                loadMessages(currentContact);
+                loadContacts();
+            }
+        }
+
+        // Add notification support
+        function showNotification(sender, message) {
+            if (Notification.permission === 'granted') {
+                new Notification('New message from ' + sender, {
+                    body: message,
+                    icon: '/path/to/icon.png'
+                });
+            } else if (Notification.permission !== 'denied') {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        showNotification(sender, message);
+                    }
+                });
+            }
+        }
+
+        // Update handleLogin to include notification permission
+        function handleLogin(event) {
+            event.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (username && password) {
+                currentUser = username;
+                chatMessages = JSON.parse(localStorage.getItem(`messages_${username}`)) || {};
+                chatRelationships = JSON.parse(localStorage.getItem(`relationships_${username}`)) || {};
+                
+                localStorage.setItem('currentUser', username);
+                
+                // Initialize socket connection
+                initializeSocket();
+                
+                // Request notification permission
+                if (Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
+                
+                showChat();
+                
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+            }
+        }
+
+        // ... rest of existing code ...
+    </script>
 </body>
 </html>
