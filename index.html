@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatter - Online Chat</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Login Interface -->
+    <div class="login-container" id="login-page">
+        <div class="login-box">
+            <div class="login-header">
+                <h1>Chatter</h1>
+                <p>Sign in to continue</p>
+            </div>
+            <form class="login-form" onsubmit="handleLogin(event)">
+                <input type="text" id="username" placeholder="Username" required>
+                <input type="password" id="password" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Chat Interface -->
+    <div class="container hidden" id="chat-page">
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Chatter</h2>
+                <div class="settings-dropdown">
+                    <button class="settings-btn" onclick="toggleSettings(event)">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <div class="dropdown-content" id="settings-dropdown">
+                        <div class="dropdown-item" onclick="showUserInfo()">
+                            <i class="fas fa-user"></i> User Info
+                        </div>
+                        <div class="dropdown-item" onclick="showAddChat()">
+                            <i class="fas fa-user-plus"></i> Add Chat
+                        </div>
+                        <div class="dropdown-item" onclick="toggleDarkMode()">
+                            <i class="fas fa-moon"></i> Dark Mode
+                        </div>
+                        <div class="dropdown-item" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="search-container">
+                <input type="text" id="contact-search" placeholder="Search contacts..." onkeyup="searchContacts()">
+            </div>
+            <div class="chat-list" id="chat-list">
+                <!-- Chat list will be populated dynamically -->
+            </div>
+        </div>
+
+        <div class="main-chat">
+            <div class="chat-header">
+                <i class="fas fa-arrow-left back-button" onclick="toggleSidebar()" style="display: none;"></i>
+                <div class="profile-pic"></div>
+                <div class="chat-name">Select a chat to start messaging</div>
+            </div>
+            
+            <div class="chat-messages" id="chat-messages"></div>
+
+            <div class="chat-input">
+                <input type="text" placeholder="Type a message..." id="message-input">
+                <button onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Chat Modal -->
+    <div class="modal" id="add-chat-modal">
+        <div class="modal-content">
+            <h2>Add New Chat</h2>
+            <div style="margin-top: 10px;">
+                <input type="text" id="new-user-input" placeholder="Enter username" style="width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                <button onclick="addNewUser()" style="background: #128c7e; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">Add User</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Info Modal -->
+    <div class="modal" id="user-info-modal">
+        <div class="modal-content">
+            <h2>User Information</h2>
+            <div id="user-info-content">
+                <!-- User info will be populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Profile Modal -->
+    <div class="user-profile-modal" id="user-profile-modal">
+        <div class="profile-content">
+            <div class="profile-header">
+                <div class="profile-pic"></div>
+                <h2 id="profile-username"></h2>
+            </div>
+            <div class="profile-info">
+                <p>Status: <span id="profile-status">Online</span></p>
+            </div>
+            <div class="profile-actions">
+                <button class="remove-user-btn" onclick="removeUser()">Remove User</button>
+                <button onclick="closeUserProfile()" style="background-color: #ddd;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Socket.IO CDN -->
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
